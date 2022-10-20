@@ -1,7 +1,7 @@
 ﻿using SaitynoGerasis.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
-
+using System.Diagnostics;
 namespace SaitynoGerasis.Data.Repositories;
 
 public interface ISellerRepository

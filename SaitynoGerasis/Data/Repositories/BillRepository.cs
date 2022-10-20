@@ -8,7 +8,7 @@ namespace SaitynoGerasis.Data.Repositories;
 public interface IBillRepository
 {
     Task<saskaita?> GetAsync(int billId);
-    Task<IReadOnlyList<saskaita>> GetManyAsync();
+    Task<IReadOnlyList<saskaita>> GetManyAsync(IReadOnlyList<perkamapreke> perkamaprekes);
     Task CreateAsync(saskaita bill);
     Task UpdateAsync(saskaita bill);
     Task DeleteAsync(saskaita bill);
@@ -28,9 +28,16 @@ public class BillRepository : IBillRepository
         return await _shopDbContext.Saskaita.FirstOrDefaultAsync(o => o.Id == billId);
     }
 
-    public async Task<IReadOnlyList<saskaita>> GetManyAsync()
+    public async Task<IReadOnlyList<saskaita>> GetManyAsync(IReadOnlyList<perkamapreke> perkamaprekes)
     {
-        return await _shopDbContext.Saskaita.ToListAsync();
+
+        List<int> ids = new List<int>();
+        foreach (var item in perkamaprekes)
+        {
+            ids.Add(item.fk_SaskaitaId);
+        }
+
+        return await _shopDbContext.Saskaita.Where(o => ids.Contains(o.Id)).ToListAsync();
     }
 
 

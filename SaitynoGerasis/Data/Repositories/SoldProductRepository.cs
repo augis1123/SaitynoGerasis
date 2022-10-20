@@ -6,8 +6,9 @@ namespace SaitynoGerasis.Data.Repositories;
 
 public interface ISoldProductRepository
 {
-    Task<perkamapreke?> GetAsync(int soldId);
-    Task<IReadOnlyList<perkamapreke>> GetManyAsync();
+    Task<perkamapreke?> GetAsync(int itemId, int billId);
+    Task<perkamapreke?> GetAsync(int itemId);
+    Task<IReadOnlyList<perkamapreke>> GetManyAsync(int itemId);
     Task CreateAsync(perkamapreke soldItem);
     Task UpdateAsync(perkamapreke soldItem);
     Task DeleteAsync(perkamapreke soldItem);
@@ -22,14 +23,21 @@ public class SoldProductRepository : ISoldProductRepository
         _shopDbContext = shopDbContext;
     }
 
-    public async Task<perkamapreke?> GetAsync(int soldId)
+    public async Task<perkamapreke?> GetAsync(int itemId,int billId)
     {
-        return await _shopDbContext.perkamapreke.FirstOrDefaultAsync(o => o.id == soldId);
+        return await _shopDbContext.perkamapreke.FirstOrDefaultAsync(o => o.fk_SaskaitaId == billId && o.fk_PrekeId == itemId);
     }
 
-    public async Task<IReadOnlyList<perkamapreke>> GetManyAsync()
+    public async Task<perkamapreke?> GetAsync(int itemId)
     {
-        return await _shopDbContext.perkamapreke.ToListAsync();
+        return await _shopDbContext.perkamapreke.FirstOrDefaultAsync(o => o.fk_PrekeId == itemId);
+    }
+
+    public async Task<IReadOnlyList<perkamapreke>> GetManyAsync(int itemId)
+    {
+
+
+        return await _shopDbContext.perkamapreke.Where(o => o.fk_PrekeId == itemId).ToListAsync(); ;
     }
 
 

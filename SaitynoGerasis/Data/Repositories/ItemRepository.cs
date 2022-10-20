@@ -1,12 +1,14 @@
 ﻿using SaitynoGerasis.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
+using System.Diagnostics;
 
 namespace SaitynoGerasis.Data.Repositories;
 
 public interface IItemRepository
 {
-    Task<preke?> GetAsync(int itemId);
+    Task<preke?> GetAsync(int itemId, int sellerId);
+    Task<IReadOnlyList<preke>> GetManyAsync(int sellerId);
     Task<IReadOnlyList<preke>> GetManyAsync();
     Task CreateAsync(preke item);
     Task UpdateAsync(preke item);
@@ -22,13 +24,17 @@ public class ItemRepository : IItemRepository
         _shopDbContext = shopDbContext;
     }
 
-    public async Task<preke?> GetAsync(int itemId)
+    public async Task<preke?> GetAsync(int itemId, int sellerId)
     {
-        return await _shopDbContext.Preke.FirstOrDefaultAsync(o => o.id == itemId);
+        return await _shopDbContext.Preke.FirstOrDefaultAsync(o => o.id == itemId && o.fk_PardavejasId == sellerId);
     }
-
+    public async Task<IReadOnlyList<preke>> GetManyAsync(int sellerId)
+    {
+        return await _shopDbContext.Preke.Where(o => o.fk_PardavejasId == sellerId).ToListAsync();
+    }
     public async Task<IReadOnlyList<preke>> GetManyAsync()
     {
+        var prekes = await _shopDbContext.Preke.ToListAsync();
         return await _shopDbContext.Preke.ToListAsync();
     }
 

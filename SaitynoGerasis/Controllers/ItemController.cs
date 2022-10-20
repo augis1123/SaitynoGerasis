@@ -6,76 +6,82 @@ using SaitynoGerasis.Data.Repositories;
 namespace SaitynoGerasis.Controllers
 {
     [ApiController]
-    [Route("api/sellers")]
-    public class SellerController : ControllerBase
+    [Route("api/sellers/{sellerId}/items")]
+    public class ItemController : ControllerBase
     {
+        private readonly IItemRepository _itemRepository;
         private readonly ISellerRepository _sellerRepository;
 
-        public SellerController(ISellerRepository sellerRepository)
+        public ItemController(IItemRepository itemRepository, ISellerRepository sellerRepository)
         {
+            _itemRepository = itemRepository;
             _sellerRepository = sellerRepository;
         }
 
         [HttpGet]
-        public async Task<IEnumerable<SellerDto>> GetMany()
+        public async Task<ActionResult<IEnumerable<ItemDto>>> GetMany(int sellerId)
         {
-            var sellers = await _sellerRepository.GetManyAsync();
-            return sellers.Select(o => new SellerDto(o.id, o.Pavadinimas, o.Miestas, o.Adresas));
+            var seller = await _sellerRepository.GetAsync(sellerId);
+            if (seller == null) return NotFound();
+            var item = await _itemRepository.GetManyAsync(sellerId);
+            IEnumerable<ItemDto> result = item.Select(o => new ItemDto(o.id, o.Pavadinimas, o.Aprasymas, o.Kaina, o.Kiekis));
+            return result.ToList();
         }
 
 
         [HttpGet]
-        [Route("{sellerId}")]
-        public async Task<ActionResult<SellerDto>> Get(int sellerId)
+        [Route("{itemId}")]
+        public async Task<ActionResult<ItemDto>> Get(int itemId, int sellerId)
         {
-            var seller = await _sellerRepository.GetAsync(sellerId);
-            if (seller == null)
+            var item = await _itemRepository.GetAsync(itemId, sellerId);
+            if (item == null)
             {
                 return NotFound();
             }
-            return new SellerDto(seller.id, seller.Pavadinimas, seller.Miestas, seller.Adresas);
+            return new ItemDto(item.id, item.Pavadinimas, item.Aprasymas, item.Kaina, item.Kiekis);
         }
 
         [HttpPost]
-        public async Task<ActionResult<SellerDto>> Create(CreateSellerDot createSellerDot)
+        public async Task<ActionResult<ItemDto>> Create(CreateItemDot createItemDot, int sellerId)
         {
-            var seller = new pardavejas
-            { Pavadinimas = createSellerDot.Name, Miestas = createSellerDot.City, Adresas = createSellerDot.address };
+            var item = new preke
+            {Pavadinimas = createItemDot.Name, Aprasymas = createItemDot.Description, Kaina = createItemDot.Price, Kiekis = createItemDot.Count, fk_PardavejasId = sellerId};
 
-            await _sellerRepository.CreateAsync(seller);
+            await _itemRepository.CreateAsync(item);
 
             // 201
-            return Created("", new SellerDto(seller.id, seller.Pavadinimas, seller.Miestas, seller.Adresas));
+            return Created("", new ItemDto(item.id, item.Pavadinimas, item.Aprasymas, item.Kaina, item.Kiekis));
         }
 
         [HttpPut]
-        [Route("{sellerId}")]
-        public async Task<ActionResult<SellerDto>> Update(int sellerId, UpdateSellerDot updatesellerDto)
+        [Route("{itemId}")]
+        public async Task<ActionResult<ItemDto>> Update(int itemId, UpdateItemDot updateitemDto, int sellerId)
         {
-            var seller = await _sellerRepository.GetAsync(sellerId);
+            var item = await _itemRepository.GetAsync(itemId, sellerId);
 
             // 404
-            if (seller == null)
+            if (item == null)
                 return NotFound();
 
-            seller.Miestas = updatesellerDto.City;
-            seller.Adresas = updatesellerDto.address;
-            seller.Pavadinimas = updatesellerDto.Name;
-            await _sellerRepository.UpdateAsync(seller);
+            item.Kiekis = updateitemDto.Count;
+            item.Kaina = updateitemDto.Price;
+            item.Aprasymas = updateitemDto.Description;
+            item.Pavadinimas = updateitemDto.Name;
+            await _itemRepository.UpdateAsync(item);
 
-            return Ok(new SellerDto(seller.id, seller.Pavadinimas, seller.Miestas, seller.Adresas));
+            return Ok(new ItemDto(item.id, item.Pavadinimas, item.Aprasymas, item.Kaina, item.Kiekis));
         }
 
-        [HttpDelete("{sellerId}", Name = "DeleteSeller")]
-        public async Task<ActionResult> Remove(int sellerId)
+        [HttpDelete("{itemId}", Name = "DeleteItem")]
+        public async Task<ActionResult> Remove(int itemId, int sellerId)
         {
-            var seller = await _sellerRepository.GetAsync(sellerId);
+            var item = await _itemRepository.GetAsync(itemId, sellerId);
 
             // 404
-            if (seller == null)
+            if (item == null)
                 return NotFound();
 
-            await _sellerRepository.DeleteAsync(seller);
+            await _itemRepository.DeleteAsync(item);
 
 
             // 204
