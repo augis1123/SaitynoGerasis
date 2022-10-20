@@ -8,6 +8,7 @@ public interface ISoldProductRepository
 {
     Task<perkamapreke?> GetAsync(int itemId, int billId);
     Task<perkamapreke?> GetAsync(int itemId);
+    Task<perkamapreke?> GetAsyncByBill(int billId);
     Task<IReadOnlyList<perkamapreke>> GetManyAsync(int itemId);
     Task CreateAsync(perkamapreke soldItem);
     Task UpdateAsync(perkamapreke soldItem);
@@ -32,7 +33,10 @@ public class SoldProductRepository : ISoldProductRepository
     {
         return await _shopDbContext.perkamapreke.FirstOrDefaultAsync(o => o.fk_PrekeId == itemId);
     }
-
+    public async Task<perkamapreke?> GetAsyncByBill(int billId)
+    {
+        return await _shopDbContext.perkamapreke.FirstOrDefaultAsync(o => o.fk_SaskaitaId == billId);
+    }
     public async Task<IReadOnlyList<perkamapreke>> GetManyAsync(int itemId)
     {
 

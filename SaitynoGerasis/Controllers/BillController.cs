@@ -57,21 +57,35 @@ namespace SaitynoGerasis.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<BillDto>> Create(CreateBillDot createBillDot)
+        public async Task<ActionResult<BillDto>> Create(CreateBillDot createBillDot, int sellerId, int itemId)
         {
+            var seller = await _sellerRepository.GetAsync(sellerId);
+            if (seller == null) return NotFound();
+            var item = await _itemRepository.GetAsync(itemId, sellerId);
+            if (item == null) return NotFound();
+            
+
             var bill = new saskaita
-            { Id = createBillDot.id, Vardas = createBillDot.BuyerName, Pavarde = createBillDot.BuyerSecondName, Miestas = createBillDot.city, Adresas = createBillDot.address, PirkimoData = createBillDot.DateTime};
+            {Vardas = createBillDot.BuyerName, Pavarde = createBillDot.BuyerSecondName, Miestas = createBillDot.city, Adresas = createBillDot.address, PirkimoData = createBillDot.DateTime};
 
             await _billRepository.CreateAsync(bill);
-
+            var sold = new perkamapreke { fk_PrekeId = itemId, fk_SaskaitaId = bill.Id};
+            await _oldProductRepository.CreateAsync(sold);
             // 201
             return Created("", new BillDto(bill.Id, bill.Vardas, bill.Pavarde, bill.Miestas, bill.Adresas, bill.PirkimoData));
         }
 
         [HttpPut]
         [Route("{billId}")]
-        public async Task<ActionResult<BillDto>> Update(int billId, UpdateBillDot updatebillDto)
+        public async Task<ActionResult<BillDto>> Update(int billId, UpdateBillDot updatebillDto,int sellerId, int itemId)
         {
+            var seller = await _sellerRepository.GetAsync(sellerId);
+            if (seller == null) return NotFound();
+            var item = await _itemRepository.GetAsync(itemId, sellerId);
+            if (item == null) return NotFound();
+
+
+
             var bill = await _billRepository.GetAsync(billId);
 
             // 404
@@ -89,9 +103,22 @@ namespace SaitynoGerasis.Controllers
         }
 
         [HttpDelete("{billId}", Name = "DeleteBill")]
-        public async Task<ActionResult> Remove(int billId)
+        public async Task<ActionResult> Remove(int billId, int sellerId, int itemId)
         {
             var bill = await _billRepository.GetAsync(billId);
+
+            var seller = await _sellerRepository.GetAsync(sellerId);
+            if (seller == null) return NotFound();
+            var item = await _itemRepository.GetAsync(itemId, sellerId);
+            if (item == null) return NotFound();
+
+            var sold = await _oldProductRepository.GetAsyncByBill(billId);
+            if (sold == null)
+            {
+                return NotFound();
+            }
+
+            await _oldProductRepository.DeleteAsync(sold);
 
             // 404
             if (bill == null)
