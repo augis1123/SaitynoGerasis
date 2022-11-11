@@ -1,7 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.JsonWebTokens;
+using SaitynoGerasis.Auth.Model;
 using SaitynoGerasis.Data.Dtos;
 using SaitynoGerasis.Data.Entities;
 using SaitynoGerasis.Data.Repositories;
+using System.Diagnostics;
+using System.Security.Claims;
 
 namespace SaitynoGerasis.Controllers
 {
@@ -13,13 +18,14 @@ namespace SaitynoGerasis.Controllers
         private readonly IItemRepository _itemRepository;
         private readonly ISellerRepository _sellerRepository;
         private readonly ISoldProductRepository _oldProductRepository;
-
-        public BillController(IBillRepository billRepository, IItemRepository itemRepository, ISellerRepository seller, ISoldProductRepository soldProductRepository)
+        private readonly IAuthorizationService _authorizationService;
+        public BillController(IBillRepository billRepository, IItemRepository itemRepository, ISellerRepository seller, ISoldProductRepository soldProductRepository, IAuthorizationService authorizationService)
         {
             _billRepository = billRepository;
             _itemRepository = itemRepository;
             _sellerRepository = seller;
             _oldProductRepository = soldProductRepository;
+            _authorizationService = authorizationService;
         }
 
         [HttpGet]
@@ -57,17 +63,25 @@ namespace SaitynoGerasis.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = Roles.User)]
         public async Task<ActionResult<BillDto>> Create(CreateBillDot createBillDot, int sellerId, int itemId)
         {
             var seller = await _sellerRepository.GetAsync(sellerId);
             if (seller == null) return NotFound();
             var item = await _itemRepository.GetAsync(itemId, sellerId);
             if (item == null) return NotFound();
-            
+
 
             var bill = new saskaita
-            {Vardas = createBillDot.BuyerName, Pavarde = createBillDot.BuyerSecondName, Miestas = createBillDot.city, Adresas = createBillDot.address, PirkimoData = createBillDot.DateTime};
-
+            { Vardas = createBillDot.BuyerName,
+                Pavarde = createBillDot.BuyerSecondName,
+                Miestas = createBillDot.city, Adresas = createBillDot.address,
+                PirkimoData = createBillDot.DateTime,
+                UserId = User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+            
+            };
+            Debug.WriteLine("fdg-uhkhj--------------------------------------------");
+            Debug.WriteLine(User.FindFirstValue(JwtRegisteredClaimNames.Sub));
             await _billRepository.CreateAsync(bill);
             var sold = new perkamapreke { fk_PrekeId = itemId, fk_SaskaitaId = bill.Id};
             await _oldProductRepository.CreateAsync(sold);
@@ -77,6 +91,7 @@ namespace SaitynoGerasis.Controllers
 
         [HttpPut]
         [Route("{billId}")]
+        [Authorize(Roles = Roles.User)]
         public async Task<ActionResult<BillDto>> Update(int billId, UpdateBillDot updatebillDto,int sellerId, int itemId)
         {
             var seller = await _sellerRepository.GetAsync(sellerId);
@@ -85,9 +100,12 @@ namespace SaitynoGerasis.Controllers
             if (item == null) return NotFound();
 
 
-
             var bill = await _billRepository.GetAsync(billId);
-
+            var authr = await _authorizationService.AuthorizeAsync(User, bill, PolicyNames.ResourceOwner);
+            if (!authr.Succeeded)
+            {
+                return Forbid();
+            }
             // 404
             if (bill == null)
                 return NotFound();
@@ -103,6 +121,7 @@ namespace SaitynoGerasis.Controllers
         }
 
         [HttpDelete("{billId}", Name = "DeleteBill")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult> Remove(int billId, int sellerId, int itemId)
         {
             var bill = await _billRepository.GetAsync(billId);
@@ -117,7 +136,11 @@ namespace SaitynoGerasis.Controllers
             {
                 return NotFound();
             }
-
+            var authr = await _authorizationService.AuthorizeAsync(User, bill, PolicyNames.ResourceOwner);
+            if (!authr.Succeeded)
+            {
+                return Forbid();
+            }
             await _oldProductRepository.DeleteAsync(sold);
 
             // 404

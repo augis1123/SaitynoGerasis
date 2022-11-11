@@ -9,10 +9,13 @@ public interface ISoldProductRepository
     Task<perkamapreke?> GetAsync(int itemId, int billId);
     Task<perkamapreke?> GetAsync(int itemId);
     Task<perkamapreke?> GetAsyncByBill(int billId);
+    Task<perkamapreke?> GetAsyncByItem(int itemId);
     Task<IReadOnlyList<perkamapreke>> GetManyAsync(int itemId);
     Task CreateAsync(perkamapreke soldItem);
     Task UpdateAsync(perkamapreke soldItem);
     Task DeleteAsync(perkamapreke soldItem);
+    Task DeleteManyAsync(IReadOnlyList<perkamapreke> soldItem);
+    Task DeleteManyAsyncByItems(IReadOnlyList<preke> Items);
 }
 
 public class SoldProductRepository : ISoldProductRepository
@@ -37,6 +40,12 @@ public class SoldProductRepository : ISoldProductRepository
     {
         return await _shopDbContext.perkamapreke.FirstOrDefaultAsync(o => o.fk_SaskaitaId == billId);
     }
+
+    public async Task<perkamapreke?> GetAsyncByItem(int itemId)
+    {
+        return await _shopDbContext.perkamapreke.FirstOrDefaultAsync(o => o.fk_SaskaitaId == itemId);
+    }
+
     public async Task<IReadOnlyList<perkamapreke>> GetManyAsync(int itemId)
     {
 
@@ -60,6 +69,27 @@ public class SoldProductRepository : ISoldProductRepository
     public async Task DeleteAsync(perkamapreke soldItem)
     {
         _shopDbContext.perkamapreke.Remove(soldItem);
+        await _shopDbContext.SaveChangesAsync();
+    }
+    public async Task DeleteManyAsync(IReadOnlyList<perkamapreke> soldItem)
+    {
+        foreach (perkamapreke item in soldItem)
+        {
+            _shopDbContext.perkamapreke.Remove(item);
+        }
+        await _shopDbContext.SaveChangesAsync();
+    }
+
+    public async Task DeleteManyAsyncByItems(IReadOnlyList<preke> Items)
+    {
+        foreach (preke item in Items)
+        {
+            var sooold = _shopDbContext.perkamapreke.Where(x => x.fk_PrekeId == item.id).ToList();
+            foreach (perkamapreke i in sooold)
+            {
+                _shopDbContext.perkamapreke.Remove(i);
+            }
+        }
         await _shopDbContext.SaveChangesAsync();
     }
 }

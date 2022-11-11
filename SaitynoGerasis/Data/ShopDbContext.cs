@@ -1,9 +1,10 @@
 ﻿using SaitynoGerasis.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace WebApplication1.Data
 {
-    public class ShopDbContext : DbContext
+    public class ShopDbContext : IdentityDbContext<naudotojas>
     {
         public DbSet<preke> Preke { get; set; }
         public DbSet<pardavejas> Pardavejas { get; set; }

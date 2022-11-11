@@ -1,7 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.JsonWebTokens;
+using SaitynoGerasis.Auth.Model;
 using SaitynoGerasis.Data.Dtos;
 using SaitynoGerasis.Data.Entities;
 using SaitynoGerasis.Data.Repositories;
+using System.Security.Claims;
 
 namespace SaitynoGerasis.Controllers
 {
@@ -9,13 +13,20 @@ namespace SaitynoGerasis.Controllers
     [Route("api/sellers/{sellerId}/items")]
     public class ItemController : ControllerBase
     {
+        private readonly IBillRepository _billRepository;
         private readonly IItemRepository _itemRepository;
         private readonly ISellerRepository _sellerRepository;
+        private readonly ISoldProductRepository _oldProductRepository;
+        private readonly IAuthorizationService _authorizationService;
 
-        public ItemController(IItemRepository itemRepository, ISellerRepository sellerRepository)
+        public ItemController(IItemRepository itemRepository, ISellerRepository sellerRepository, ISoldProductRepository sold, IBillRepository billRepository, IAuthorizationService authorizationService)
         {
             _itemRepository = itemRepository;
             _sellerRepository = sellerRepository;
+            _billRepository = billRepository;
+            _oldProductRepository = sold;
+            _authorizationService = authorizationService;
+            
         }
 
         [HttpGet]
@@ -42,10 +53,13 @@ namespace SaitynoGerasis.Controllers
         }
 
         [HttpPost]
+        [Authorize (Roles = Roles.Seller)]
         public async Task<ActionResult<ItemDto>> Create(CreateItemDot createItemDot, int sellerId)
         {
             var item = new preke
-            {Pavadinimas = createItemDot.Name, Aprasymas = createItemDot.Description, Kaina = createItemDot.Price, Kiekis = createItemDot.Count, fk_PardavejasId = sellerId};
+            {Pavadinimas = createItemDot.Name, Aprasymas = createItemDot.Description, Kaina = createItemDot.Price, Kiekis = createItemDot.Count, fk_PardavejasId = sellerId,
+            UserId = User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+            };
 
             await _itemRepository.CreateAsync(item);
 
@@ -55,10 +69,15 @@ namespace SaitynoGerasis.Controllers
 
         [HttpPut]
         [Route("{itemId}")]
+        [Authorize(Roles = Roles.Seller)]
         public async Task<ActionResult<ItemDto>> Update(int itemId, UpdateItemDot updateitemDto, int sellerId)
         {
             var item = await _itemRepository.GetAsync(itemId, sellerId);
-
+            var authr = await _authorizationService.AuthorizeAsync(User, item, PolicyNames.ResourceOwner);
+            if (!authr.Succeeded)
+            {
+                return Forbid();
+            }
             // 404
             if (item == null)
                 return NotFound();
@@ -73,9 +92,22 @@ namespace SaitynoGerasis.Controllers
         }
 
         [HttpDelete("{itemId}", Name = "DeleteItem")]
+        [Authorize(Roles = Roles.Seller)]
         public async Task<ActionResult> Remove(int itemId, int sellerId)
         {
             var item = await _itemRepository.GetAsync(itemId, sellerId);
+            var sold = await _oldProductRepository.GetManyAsync(itemId);
+            var seller = await _sellerRepository.GetAsync(sellerId);
+            if (sold != null)
+            {
+                await _oldProductRepository.DeleteManyAsync(sold);
+            }
+            if (seller == null) return NotFound();
+            var authr = await _authorizationService.AuthorizeAsync(User, item, PolicyNames.ResourceOwner);
+            if (!authr.Succeeded)
+            {
+                return Forbid();
+            }
 
             // 404
             if (item == null)

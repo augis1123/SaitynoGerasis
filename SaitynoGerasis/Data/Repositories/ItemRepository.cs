@@ -13,6 +13,7 @@ public interface IItemRepository
     Task CreateAsync(preke item);
     Task UpdateAsync(preke item);
     Task DeleteAsync(preke item);
+    Task DeleteManyAsync(IReadOnlyList<preke> items);
 }
 
 public class ItemRepository : IItemRepository
@@ -54,6 +55,14 @@ public class ItemRepository : IItemRepository
     public async Task DeleteAsync(preke item)
     {
         _shopDbContext.Preke.Remove(item);
+        await _shopDbContext.SaveChangesAsync();
+    }
+    public async Task DeleteManyAsync(IReadOnlyList<preke> items)
+    {
+        foreach (var item in items)
+        {
+            _shopDbContext.Preke.Remove(item);
+        }
         await _shopDbContext.SaveChangesAsync();
     }
 }
