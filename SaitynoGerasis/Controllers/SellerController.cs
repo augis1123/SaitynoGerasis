@@ -77,16 +77,15 @@ namespace SaitynoGerasis.Controllers
             // 404
             if (seller == null)
                 return NotFound();
-
-            seller.Miestas = updatesellerDto.City;
-            seller.Adresas = updatesellerDto.address;
-            seller.Pavadinimas = updatesellerDto.Name;
-            await _sellerRepository.UpdateAsync(seller);
             var authr = await _authorizationService.AuthorizeAsync(User, seller, PolicyNames.ResourceOwner);
             if (!authr.Succeeded)
             {
                 return Forbid();
             }
+            seller.Miestas = updatesellerDto.City;
+            seller.Adresas = updatesellerDto.address;
+            seller.Pavadinimas = updatesellerDto.Name;
+            await _sellerRepository.UpdateAsync(seller);
             return Ok(new SellerDto(seller.id, seller.Pavadinimas, seller.Miestas, seller.Adresas));
         }
 
@@ -95,6 +94,12 @@ namespace SaitynoGerasis.Controllers
         public async Task<ActionResult> Remove(int sellerId)
         {
             var seller = await _sellerRepository.GetAsync(sellerId);
+            var authr = await _authorizationService.AuthorizeAsync(User, seller, PolicyNames.ResourceOwner);
+            if (!authr.Succeeded)
+            {
+                return Forbid();
+            }
+
             var items = await _itemRepository.GetManyAsync(sellerId);
 
             if(items != null)
@@ -103,11 +108,6 @@ namespace SaitynoGerasis.Controllers
                 await _itemRepository.DeleteManyAsync(items);
             }
 
-            var authr = await _authorizationService.AuthorizeAsync(User, seller, PolicyNames.ResourceOwner);
-            if (!authr.Succeeded)
-            {
-                return Forbid();
-            }
             // 404
             if (seller == null)
                 return NotFound();

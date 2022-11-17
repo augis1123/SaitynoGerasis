@@ -14,6 +14,7 @@ using SaitynoGerasis.Auth;
 using Microsoft.AspNetCore.Authorization;
 using SaitynoGerasis.Auth.Model;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.EntityFrameworkCore;
 
 
 
@@ -39,6 +40,7 @@ builder.Services.AddAuthentication(configureOptions: option =>
     option.TokenValidationParameters.ValidIssuer = builder.Configuration["JWT:ValidIssuer"];
     option.TokenValidationParameters.IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"]));
 });
+//builder.Services.AddDbContext<ShopDbContext>(x => x.UseInMemoryDatabase("main"));
 builder.Services.AddDbContext<ShopDbContext>();
 builder.Services.AddTransient<IItemRepository, ItemRepository>();
 builder.Services.AddTransient<ISellerRepository, SellerRepository>();

@@ -56,6 +56,12 @@ namespace SaitynoGerasis.Controllers
         [Authorize (Roles = Roles.Seller)]
         public async Task<ActionResult<ItemDto>> Create(CreateItemDot createItemDot, int sellerId)
         {
+            var seller = await _sellerRepository.GetAsync(sellerId);
+            var authr = await _authorizationService.AuthorizeAsync(User, seller, PolicyNames.ResourceOwner);
+            if (!authr.Succeeded)
+            {
+                return Forbid();
+            }
             var item = new preke
             {Pavadinimas = createItemDot.Name, Aprasymas = createItemDot.Description, Kaina = createItemDot.Price, Kiekis = createItemDot.Count, fk_PardavejasId = sellerId,
             UserId = User.FindFirstValue(JwtRegisteredClaimNames.Sub)
@@ -98,16 +104,16 @@ namespace SaitynoGerasis.Controllers
             var item = await _itemRepository.GetAsync(itemId, sellerId);
             var sold = await _oldProductRepository.GetManyAsync(itemId);
             var seller = await _sellerRepository.GetAsync(sellerId);
-            if (sold != null)
-            {
-                await _oldProductRepository.DeleteManyAsync(sold);
-            }
-            if (seller == null) return NotFound();
             var authr = await _authorizationService.AuthorizeAsync(User, item, PolicyNames.ResourceOwner);
             if (!authr.Succeeded)
             {
                 return Forbid();
             }
+            if (sold != null)
+            {
+                await _oldProductRepository.DeleteManyAsync(sold);
+            }
+            if (seller == null) return NotFound();
 
             // 404
             if (item == null)
