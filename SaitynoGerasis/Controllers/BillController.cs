@@ -29,9 +29,7 @@ namespace SaitynoGerasis.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = Roles.User)]
-        [Authorize(Roles = Roles.Seller)]
-        [Authorize(Roles = Roles.Admin)]
+        [Authorize(Roles = Roles.Alll)]
         public async Task<ActionResult<IEnumerable<BillDto>>> GetMany(int itemId, int sellerId)
         {
             var sold = await _oldProductRepository.GetManyAsync(itemId);
@@ -48,9 +46,7 @@ namespace SaitynoGerasis.Controllers
 
         [HttpGet]
         [Route("{billId}")]
-        [Authorize(Roles = Roles.User)]
-        [Authorize(Roles = Roles.Seller)]
-        [Authorize(Roles = Roles.Admin)]
+        [Authorize(Roles = Roles.Alll)]
         public async Task<ActionResult<BillDto>> Get(int billId, int sellerId, int itemId)
         {
             var sold = await _oldProductRepository.GetAsync(itemId, billId);
